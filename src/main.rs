@@ -105,12 +105,13 @@ async fn connect_nats() -> Connection {
 
     let pipeline = gst::Pipeline::new(None).downcast::<gst::Pipeline>().expect("Expected a gst::Pipeline");
 
-    let src = gst::ElementFactory::make("rtspsrc", "src")
-        .map_err(|_| MissingElement("videotestsrc"))?;
+    let src = gst::ElementFactory::make("rtspsrc", Some("src"))
+        .map_err(|_| MissingElement("rtspsrc"))?;
     src.set_property("location", &uri);
 
     let rtph264depay = gst::ElementFactory::make("rtph264depay", None)
         .map_err(|_| MissingElement("rtph264depay"))?;
+
     let queue = gst::ElementFactory::make("queue", Some("queue"))
         .expect("Could not create queue element.");
     queue.set_property_from_str("leaky", "upstream");
@@ -132,9 +133,9 @@ async fn connect_nats() -> Connection {
     
     let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
 
-    pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
+    pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
     println!("111111111111111111");
-    src.link(&sink)?;
+    src.link(&sink).unwrap();
     println!("222222222222222222");
     // gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
 
