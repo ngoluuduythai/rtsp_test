@@ -94,14 +94,66 @@ async fn connect_nats() -> Connection {
     //      uri
     //  ))?
 
-     let pipeline = gst::parse_launch(&format!(
-        "rtspsrc location={} ! rtph264depay ! queue leaky=2 ! h264parse ! queue leaky=2 ! vaapih264dec ! videorate ! video/x-raw,framerate=5/1 ! vaapipostproc ! vaapijpegenc ! appsink name=sink max-buffers=100 emit-signals=false drop=true" ,
-        uri
-    ))?
-    .downcast::<gst::Pipeline>()
-    .expect("Expected a gst::Pipeline");
+    //  let pipeline = gst::parse_launch(&format!(
+    //     "rtspsrc location={} ! rtph264depay ! queue leaky=2 ! h264parse ! queue leaky=2 ! vaapih264dec ! videorate ! video/x-raw,framerate=5/1 ! vaapipostproc ! vaapijpegenc ! appsink name=sink max-buffers=100 emit-signals=false drop=true" ,
+    //     uri
+    // ))?
+    // .downcast::<gst::Pipeline>()
+    // .expect("Expected a gst::Pipeline");
+
+
+
+    let pipeline = gst::Pipeline::new(None).downcast::<gst::Pipeline>().expect("Expected a gst::Pipeline");
+
+    let src = gst::ElementFactory::make("rtspsrc", "src")
+        .map_err(|_| MissingElement("videotestsrc"))?;
+    src.set_property("location", &uri);
+
+    let rtph264depay = gst::ElementFactory::make("rtph264depay", None)
+        .map_err(|_| MissingElement("rtph264depay"))?;
+    let queue = gst::ElementFactory::make("queue", Some("queue"))
+        .expect("Could not create queue element.");
+    queue.set_property_from_str("leaky", "upstream");
+    let queue_2 = gst::ElementFactory::make("queue", Some("queue_2"))
+        .expect("Could not create queue element.");
+    queue_2.set_property_from_str("leaky", "upstream");
+    let queue_3 = gst::ElementFactory::make("queue", Some("queue_3"))
+        .map_err(|_| MissingElement("queue"))?;
+    let h264parse = gst::ElementFactory::make("h264parse", None)
+        .map_err(|_| MissingElement("h264parse"))?;
+    let vaapih264dec = gst::ElementFactory::make("vaapih264dec", None)
+        .map_err(|_| MissingElement("vaapih264dec"))?;
+    let videorate = gst::ElementFactory::make("videorate", None)
+        .map_err(|_| MissingElement("videorate"))?;
+    let vaapipostproc = gst::ElementFactory::make("vaapipostproc", None)
+        .map_err(|_| MissingElement("vaapipostproc"))?;
+    let vaapijpegenc = gst::ElementFactory::make("vaapijpegenc", None)
+        .map_err(|_| MissingElement("vaapijpegenc"))?;
+    
+    let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
+
+    pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
+    println!("111111111111111111");
+    src.link(&sink)?;
+    println!("222222222222222222");
+    // gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
+
+    // Tell the appsink what format we want. It will then be the audiotestsrc's job to
+    // provide the format we request.
+    // This can be set after linking the two objects, because format negotiation between
+    // both elements will happen during pre-rolling of the pipeline.
+
+
+
+
+
 
     println!("pipeline: {:?} - {:?}", uri, pipeline);
+
+
+
+
+
     // Get access to the appsink element.
     let appsink = pipeline
         .by_name("sink")
@@ -368,6 +420,9 @@ let mut seeked = false;
 
     Ok(())
 }
+
+
+
 #[tokio::main]
 async fn main() {
     // let handle = Handle::current();
