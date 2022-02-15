@@ -142,13 +142,13 @@ fn on_pad_added(pad: gst::Pad, dst: gst::Pad) {
 
       let  depay = gst::ElementFactory::make("rtph264depay", Some("depay"))?;
       let  queuev1 = gst::ElementFactory::make("queue2", Some("queue"))?;
-      let decodebin = gst::ElementFactory::make("avdec_h264", "decodea");
+      let decodebin = gst::ElementFactory::make("avdec_h264", Some("decodea"));
 
 
       src.connect("pad-added", on_pad_added, queuev1)?;
         
-      let conv = gst::ElementFactory::make("videoconvert", "conv")?;
-      let  sink = gst::ElementFactory::make("xvimagesink", "sink")?;
+      let conv = gst::ElementFactory::make("videoconvert", Some("conv"))?;
+      let  sink = gst::ElementFactory::make("xvimagesink", Some("sink"))?;
 
        pipeline.add(src);
        pipeline.add(depay);
