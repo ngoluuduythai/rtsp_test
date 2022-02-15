@@ -73,6 +73,15 @@ async fn connect_nats() -> Connection {
         .unwrap()
 }
 
+
+fn on_pad_added(pad: gst::Pad, dst: gst::Pad) {
+    // Pad sinkPad = sink.getStaticPad("sink");
+    // pad.link(sinkPad);
+    apad = dst.get_static_pad("sink");
+    pad.link(apad)
+}
+
+
  fn create_pipeline(id: String, uri: String, client: Connection, is_frame_getting: Arc<Mutex<bool>>,is_record: Arc<Mutex<bool>>,
     is_live: Arc<Mutex<bool>>,
     width: Arc<Mutex<usize>>,
@@ -130,12 +139,41 @@ async fn connect_nats() -> Connection {
         .map_err(|_| MissingElement("vaapipostproc"))?;
     let vaapijpegenc = gst::ElementFactory::make("vaapijpegenc", None)
         .map_err(|_| MissingElement("vaapijpegenc"))?;
-    
-    let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
 
-    pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
-    println!("111111111111111111");
-    //src.link(&sink).unwrap();
+      let  depay = gst::ElementFactory::make("rtph264depay", Some("depay"))?;
+      let  queuev1 = gst::ElementFactory::make("queue2", Some("queue"))?;
+      let decodebin = gst::ElementFactory::make("avdec_h264", "decodea");
+
+
+      src.connect("pad-added", on_pad_added, queuev1)?;
+        
+      let conv = gst::ElementFactory::make("videoconvert", "conv")?;
+      let  sink = gst::ElementFactory::make("xvimagesink", "sink")?;
+
+       pipeline.add(src);
+       pipeline.add(depay);
+
+       pipeline.add(queuev1);
+       pipeline.add(conv);
+       pipeline.add(sink);
+       pipeline.add(decodebin);
+
+       queuev1.link(depay).unwrap();
+       decodebin.link(conv).unwrap();
+       conv.link(sink).unwrap();
+
+
+    
+    // let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
+
+    // pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
+    // println!("111111111111111111");
+
+    // //let on_pad_added = gst::Pad::new(Some("pad-added"), gst::PadDirection::Sink);
+    // src.connect("pad-added", on_pad_added, queue_3);
+    // src.link(&queue_3).unwrap();
+
+
     //println!("222222222222222222");
     // gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
 
