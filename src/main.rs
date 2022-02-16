@@ -144,7 +144,7 @@ fn create_pipeline(
 
     framefilter.set_property(
         "caps",
-        gst::Caps::from_str("video/x-raw,framerate=3/1,width=720,height=480"),
+        gst::Caps::builder("video/x-raw,framerate=3/1,width=720,height=480").build(),
     );
 
     let vaapipostproc = gst::ElementFactory::make("vaapipostproc", None)
