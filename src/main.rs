@@ -140,13 +140,22 @@ fn create_pipeline(
     let videorate =
         gst::ElementFactory::make("videorate", None).map_err(|_| MissingElement("videorate"))?;
 
-    // let framefilter =
-    //     gst::ElementFactory::make("capsfilter", None).map_err(|_| MissingElement("framefilter"))?;
+    let caps = gst::Caps::new_simple(
+        "video/x-raw",
+        &[
+            ("width", 720),
+            ("height", 480),
+            ("framerate", &gst::Fraction::new(5, 1)),
+        ],
+    );
 
-    // framefilter.set_property(
-    //     "caps",
-    //     gst::Caps::builder("video/x-raw,framerate=3/1,width=720,height=480").build(),
-    // );
+    let framefilter =
+        gst::ElementFactory::make("capsfilter", Some("framefilter")).map_err(|_| MissingElement("framefilter"))?;
+
+    framefilter.set_property(
+        "caps",
+        &caps,
+    );
 
     let vaapipostproc = gst::ElementFactory::make("vaapipostproc", None)
         .map_err(|_| MissingElement("vaapipostproc"))?;
@@ -196,7 +205,7 @@ fn create_pipeline(
             &queue_2,
             &vaapih264dec,
             &videorate,
-    //        &framefilter,
+            &framefilter,
             &sink,
             &queue_3,
             &vaapipostproc,
@@ -239,8 +248,8 @@ fn create_pipeline(
     h264parse.link(&queue_2).unwrap();
     queue_2.link(&vaapih264dec).unwrap();
     vaapih264dec.link(&videorate).unwrap();
-    videorate.link(&vaapipostproc).unwrap();
-    //framefilter.link(&vaapipostproc).unwrap();
+    videorate.link(&framefilter).unwrap();
+    framefilter.link(&vaapipostproc).unwrap();
     vaapipostproc.link(&vaapijpegenc).unwrap();
     vaapijpegenc.link(&sink).unwrap();
     //rtspsrc location={} !
