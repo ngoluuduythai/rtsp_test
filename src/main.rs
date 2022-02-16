@@ -188,9 +188,27 @@ async fn connect_nats() -> Connection {
     // src.connect("pad-added", on_pad_added, queue_3);
     // src.link(&queue_3).unwrap();
 
-
+    src.link(rtph264depay).unwrap();
+    rtph264depay.link(queue).unwrap();
+    queue.link(h264parse).unwrap();
+    h264parse.link(queue_2).unwrap();
+    queue_2.link(vaapih264dec).unwrap();
+    vaapih264dec.link(videorate).unwrap();
+    videorate.link(vaapipostproc).unwrap();
+    vaapipostproc.link(vaapijpegenc).unwrap();
+    vaapijpegenc.link(sink).unwrap();
+    //rtspsrc location={} !
+    //   rtph264depay 
+    //   queue leaky=2 
+    //   h264parse 
+    //   queue leaky=2 
+    //   vaapih264dec 
+    //   videorate ! video/x-raw,framerate=5/1 
+    //   vaapipostproc ! vaapijpegenc 
+    //   appsink name=sink max-buffers=100 emit-signals=false drop=true
+    
     //println!("222222222222222222");
-    gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
+    //gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
 
     // Tell the appsink what format we want. It will then be the audiotestsrc's job to
     // provide the format we request.
