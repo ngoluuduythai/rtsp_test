@@ -283,8 +283,8 @@ fn create_pipeline(
     appsink.set_property("emit-signals", false);
     appsink.set_property("max-buffers", 100);
 
-    let caps = gst::Caps::builder("video/x-raw").build();
-    appsink.set_caps(Some(&caps));
+    // let caps = gst::Caps::builder("video/x-raw").build();
+    // appsink.set_caps(Some(&caps));
 
     let mut count = 0;
     let mut got_snapshot = false;
