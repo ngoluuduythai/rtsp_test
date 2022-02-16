@@ -140,13 +140,13 @@ fn create_pipeline(
     let videorate =
         gst::ElementFactory::make("videorate", None).map_err(|_| MissingElement("videorate"))?;
 
-    let framefilter =
-        gst::ElementFactory::make("capsfilter", None).map_err(|_| MissingElement("framefilter"))?;
+    // let framefilter =
+    //     gst::ElementFactory::make("capsfilter", None).map_err(|_| MissingElement("framefilter"))?;
 
-    framefilter.set_property(
-        "caps",
-        gst::Caps::builder("video/x-raw,framerate=3/1,width=720,height=480").build(),
-    );
+    // framefilter.set_property(
+    //     "caps",
+    //     gst::Caps::builder("video/x-raw,framerate=3/1,width=720,height=480").build(),
+    // );
 
     let vaapipostproc = gst::ElementFactory::make("vaapipostproc", None)
         .map_err(|_| MissingElement("vaapipostproc"))?;
