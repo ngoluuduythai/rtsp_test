@@ -406,8 +406,10 @@ async fn connect_nats() -> Connection {
                     
                     let mut result_buf = BufWriter::new(Vec::new());
                     image::codecs::jpeg::JpegEncoder::new(&mut result_buf).encode(dst_image.buffer(), dst_width.get(), dst_height.get(), ColorType::Rgb8).unwrap();
+                    println!("have images");
 
                     Vec::from(result_buf.into_inner().unwrap())
+
                 }
                 Err(_) => unreachable!(),
             };
