@@ -195,7 +195,7 @@ async fn connect_nats() -> Connection {
     src.connect_pad_added(move |_,src_pad|{
       
                 // Obtain the sink_pad from audioconvert element
-                let sink_pad = rtph264depay.get_static_pad("sink").expect("Failed to get static sink pad from convert");
+                let sink_pad = &rtph264depay.static_pad("sink").expect("Failed to get static sink pad from convert");
                 if sink_pad.is_linked() {
                     println!("We are already linked. Ignoreing");
                     return;
