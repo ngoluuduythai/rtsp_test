@@ -189,6 +189,28 @@ async fn connect_nats() -> Connection {
     // src.link(&queue_3).unwrap();
 
     //src.link(&rtph264depay).unwrap();
+    // g_signal_connect (src, "pad-added", G_CALLBACK (on_pad_added),rtph264depay);
+
+      // Add event listener
+    src.connect_pad_added(move |_,src_pad|{
+      
+                // Obtain the sink_pad from audioconvert element
+                let sink_pad = rtph264depay.get_static_pad("sink").expect("Failed to get static sink pad from convert");
+                if sink_pad.is_linked() {
+                    println!("We are already linked. Ignoreing");
+                    return;
+                }
+
+                        // Link the src pad to sink pad
+        let res = src_pad.link(&sink_pad);
+        if res.is_err() {
+            println!("Type is but link failed");
+        }else{
+            println!("Link succeeded type")
+        }
+    
+    });
+
     rtph264depay.link(&queue).unwrap();
     queue.link(&h264parse).unwrap();
     h264parse.link(&queue_2).unwrap();
