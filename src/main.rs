@@ -190,7 +190,7 @@ async fn connect_nats() -> Connection {
 
 
     //println!("222222222222222222");
-    gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
+    gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
 
     // Tell the appsink what format we want. It will then be the audiotestsrc's job to
     // provide the format we request.
