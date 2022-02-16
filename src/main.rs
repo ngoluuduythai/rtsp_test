@@ -224,14 +224,6 @@ fn create_pipeline(
     });
 
 
-    sink.set_property("drop", true);
-    sink.set_property("emit-signals", false);
-    sink.set_property("max-buffers", 100);
-
-    let caps = gst::Caps::builder("video/x-raw").build();
-
-    sink.set_caps(Some(&caps));
-
     let video_caps = gst::Caps::builder("video/x-raw,framerate=3/1").build();
     src.set_property("caps", video_caps);
 
@@ -270,6 +262,13 @@ fn create_pipeline(
         .expect("Sink element not found")
         .downcast::<gst_app::AppSink>()
         .expect("Sink element is expected to be an appsink!");
+
+        appsink.set_property("drop", true);
+        appsink.set_property("emit-signals", false);
+        appsink.set_property("max-buffers", 100);
+
+    let caps = gst::Caps::builder("video/x-raw").build();
+    appsink.set_caps(Some(&caps));
 
     let mut count = 0;
     let mut got_snapshot = false;
