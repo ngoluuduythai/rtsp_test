@@ -74,11 +74,10 @@ async fn connect_nats() -> Connection {
 }
 
 
-fn on_pad_added(pad: gst::Pad, dst: gst::Pad) {
+fn on_pad_added(pipeline: Pipeple, pad: gst::Pad) {
     // Pad sinkPad = sink.getStaticPad("sink");
     // pad.link(sinkPad);
-    apad = dst.get_static_pad("sink");
-    pad.link(apad)
+    pad.link(pipeline._tolink_video_elem.get_static_pad("sink"));
 }
 
 
@@ -145,28 +144,40 @@ fn on_pad_added(pad: gst::Pad, dst: gst::Pad) {
       let decodebin = gst::ElementFactory::make("avdec_h264", Some("decodea"));
 
 
-      src.connect("pad-added", on_pad_added, queuev1)?;
+      //src.connect("pad-added", on_pad_added(pipeline), queuev1)?;
+
+
+      src.connect_pad_added(move |element, src_pad| {
+        // Here we temporarily retrieve a strong reference on the pipeline from the weak one
+        // we moved into this callback.
+        // let pipeline = match pipeline_weak.upgrade() {
+        //     Some(pipeline) => pipeline,
+        //     None => return,
+        // };
+        src_pad.link(pipeline._tolink_video_elem.get_static_pad("sink"));
+    });
+
         
-      let conv = gst::ElementFactory::make("videoconvert", Some("conv"))?;
-      let  sink = gst::ElementFactory::make("xvimagesink", Some("sink"))?;
+    //   let conv = gst::ElementFactory::make("videoconvert", Some("conv"))?;
+    //   let  sink = gst::ElementFactory::make("xvimagesink", Some("sink"))?;
 
-       pipeline.add(src);
-       pipeline.add(depay);
+    //    pipeline.add(src);
+    //    pipeline.add(depay);
 
-       pipeline.add(queuev1);
-       pipeline.add(conv);
-       pipeline.add(sink);
-       pipeline.add(decodebin);
+    //    pipeline.add(queuev1);
+    //    pipeline.add(conv);
+    //    pipeline.add(sink);
+    //    pipeline.add(decodebin);
 
-       queuev1.link(depay).unwrap();
-       decodebin.link(conv).unwrap();
-       conv.link(sink).unwrap();
+    //    queuev1.link(depay).unwrap();
+    //    decodebin.link(conv).unwrap();
+    //    conv.link(sink).unwrap();
 
 
     
-    // let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
+    let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
 
-    // pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
+    pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
     // println!("111111111111111111");
 
     // //let on_pad_added = gst::Pad::new(Some("pad-added"), gst::PadDirection::Sink);
@@ -175,7 +186,7 @@ fn on_pad_added(pad: gst::Pad, dst: gst::Pad) {
 
 
     //println!("222222222222222222");
-    // gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
+    gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc])?;
 
     // Tell the appsink what format we want. It will then be the audiotestsrc's job to
     // provide the format we request.
