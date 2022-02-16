@@ -74,11 +74,13 @@ async fn connect_nats() -> Connection {
 }
 
 
-fn on_pad_added(pipeline: Pipeple, pad: gst::Pad) {
+fn on_pad_added(elem: gst::Element, pad: gst::Pad) {
     // Pad sinkPad = sink.getStaticPad("sink");
     // pad.link(sinkPad);
-    pad.link(pipeline._tolink_video_elem.get_static_pad("sink"));
+    pad.link(elem.get_static_pad("sink"));
 }
+
+
 
 
  fn create_pipeline(id: String, uri: String, client: Connection, is_frame_getting: Arc<Mutex<bool>>,is_record: Arc<Mutex<bool>>,
@@ -154,7 +156,7 @@ fn on_pad_added(pipeline: Pipeple, pad: gst::Pad) {
         //     Some(pipeline) => pipeline,
         //     None => return,
         // };
-        src_pad.link(pipeline._tolink_video_elem.get_static_pad("sink"));
+        src_pad.link(element.get_static_pad("sink"));
     });
 
         
