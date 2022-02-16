@@ -202,7 +202,7 @@ async fn connect_nats() -> Connection {
                 }
 
                         // Link the src pad to sink pad
-        let res = src_pad.link(&sink_pad);
+        let res = src_pad.link(sink_pad);
         if res.is_err() {
             println!("Type is but link failed");
         }else{
