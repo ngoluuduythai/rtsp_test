@@ -196,7 +196,7 @@ fn create_pipeline(
             &queue_2,
             &vaapih264dec,
             &videorate,
-            &framefilter,
+    //        &framefilter,
             &sink,
             &queue_3,
             &vaapipostproc,
@@ -239,8 +239,8 @@ fn create_pipeline(
     h264parse.link(&queue_2).unwrap();
     queue_2.link(&vaapih264dec).unwrap();
     vaapih264dec.link(&videorate).unwrap();
-    videorate.link(&framefilter).unwrap();
-    framefilter.link(&vaapipostproc).unwrap();
+    videorate.link(&vaapipostproc).unwrap();
+    //framefilter.link(&vaapipostproc).unwrap();
     vaapipostproc.link(&vaapijpegenc).unwrap();
     vaapijpegenc.link(&sink).unwrap();
     //rtspsrc location={} !
