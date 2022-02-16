@@ -188,7 +188,7 @@ async fn connect_nats() -> Connection {
     // src.connect("pad-added", on_pad_added, queue_3);
     // src.link(&queue_3).unwrap();
 
-    src.link(&rtph264depay).unwrap();
+    //src.link(&rtph264depay).unwrap();
     rtph264depay.link(&queue).unwrap();
     queue.link(&h264parse).unwrap();
     h264parse.link(&queue_2).unwrap();
