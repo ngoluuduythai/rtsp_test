@@ -191,6 +191,8 @@ async fn connect_nats() -> Connection {
     //src.link(&rtph264depay).unwrap();
     // g_signal_connect (src, "pad-added", G_CALLBACK (on_pad_added),rtph264depay);
 
+    let rtph264depay_2 = rtph264depay.clone();
+
       // Add event listener
     src.connect_pad_added(move |_,src_pad|{
       
@@ -211,7 +213,7 @@ async fn connect_nats() -> Connection {
     
     });
 
-    rtph264depay.link(&queue).unwrap();
+    rtph264depay_2.link(&queue).unwrap();
     queue.link(&h264parse).unwrap();
     h264parse.link(&queue_2).unwrap();
     queue_2.link(&vaapih264dec).unwrap();
