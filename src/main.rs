@@ -344,6 +344,11 @@ fn create_pipeline(
                 //     })?;
 
                 let new_image = image::load_from_memory_with_format(samples, ImageFormat::Jpeg);
+
+                new_image
+                .save(format!("origin-img-{}-{}.jpg", 1, 1))
+                .unwrap();
+
                 let new_image = match new_image {
                     Ok(image) => {
                         let width = NonZeroU32::new(image.width()).unwrap();
@@ -371,9 +376,7 @@ fn create_pipeline(
                         .unwrap();
 
 
-                        src_image
-                        .save(format!("origin-img-{}-{}.jpg", 1, 1))
-                        .unwrap();
+
 
                         // let origin_after_torgba8_img_result =
                         // image::load_from_memory_with_format(src_image.buffer(), ImageFormat::Jpeg);
