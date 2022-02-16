@@ -74,11 +74,11 @@ async fn connect_nats() -> Connection {
 }
 
 
-fn on_pad_added(elem: gst::Element, pad: gst::Pad) {
-    // Pad sinkPad = sink.getStaticPad("sink");
-    // pad.link(sinkPad);
-    pad.link(elem.get_static_pad("sink"));
-}
+// fn on_pad_added(elem: gst::Element, pad: gst::Pad) {
+//     // Pad sinkPad = sink.getStaticPad("sink");
+//     // pad.link(sinkPad);
+//     pad.link(elem.get_static_pad("sink"));
+// }
 
 
 
@@ -149,15 +149,17 @@ fn on_pad_added(elem: gst::Element, pad: gst::Pad) {
       //src.connect("pad-added", on_pad_added(pipeline), queuev1)?;
 
 
-      src.connect_pad_added(move |element, src_pad| {
-        // Here we temporarily retrieve a strong reference on the pipeline from the weak one
-        // we moved into this callback.
-        // let pipeline = match pipeline_weak.upgrade() {
-        //     Some(pipeline) => pipeline,
-        //     None => return,
-        // };
-        src_pad.link(element.get_static_pad("sink"));
-    });
+    //   src.connect_pad_added(move |element, src_pad| {
+    //     // Here we temporarily retrieve a strong reference on the pipeline from the weak one
+    //     // we moved into this callback.
+    //     // let pipeline = match pipeline_weak.upgrade() {
+    //     //     Some(pipeline) => pipeline,
+    //     //     None => return,
+    //     // };
+    //     src_pad.link(element.get_static_pad("sink"));
+    // });
+
+    
 
         
     //   let conv = gst::ElementFactory::make("videoconvert", Some("conv"))?;
