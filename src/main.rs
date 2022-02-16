@@ -143,9 +143,9 @@ fn create_pipeline(
     let caps = gst::Caps::new_simple(
         "video/x-raw",
         &[
-            ("width", 720),
-            ("height", 480),
-            ("framerate", &gst::Fraction::new(5, 1)),
+            ("width", &720),
+            ("height", &480),
+            ("framerate", &gst::Fraction::new(&5, 1)),
         ],
     );
 
