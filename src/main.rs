@@ -159,7 +159,7 @@ async fn connect_nats() -> Connection {
     //     src_pad.link(element.get_static_pad("sink"));
     // });
 
-    
+
 
         
     //   let conv = gst::ElementFactory::make("videoconvert", Some("conv"))?;
@@ -182,7 +182,7 @@ async fn connect_nats() -> Connection {
     let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
 
     pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
-    // println!("111111111111111111");
+    println!("111111111111111111");
 
     // //let on_pad_added = gst::Pad::new(Some("pad-added"), gst::PadDirection::Sink);
     // src.connect("pad-added", on_pad_added, queue_3);
