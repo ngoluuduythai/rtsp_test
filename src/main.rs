@@ -145,7 +145,7 @@ fn create_pipeline(
         &[
             ("width", &720),
             ("height", &480),
-            ("framerate", &gst::Fraction::new(&5, 1)),
+            ("framerate", &gst::Fraction::new(5, 1)),
         ],
     );
 
