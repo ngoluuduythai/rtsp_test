@@ -188,15 +188,15 @@ async fn connect_nats() -> Connection {
     // src.connect("pad-added", on_pad_added, queue_3);
     // src.link(&queue_3).unwrap();
 
-    src.link(rtph264depay).unwrap();
-    rtph264depay.link(queue).unwrap();
-    queue.link(h264parse).unwrap();
-    h264parse.link(queue_2).unwrap();
-    queue_2.link(vaapih264dec).unwrap();
-    vaapih264dec.link(videorate).unwrap();
-    videorate.link(vaapipostproc).unwrap();
-    vaapipostproc.link(vaapijpegenc).unwrap();
-    vaapijpegenc.link(sink).unwrap();
+    src.link(&rtph264depay).unwrap();
+    rtph264depay.link(&queue).unwrap();
+    queue.link(&h264parse).unwrap();
+    h264parse.link(&queue_2).unwrap();
+    queue_2.link(&vaapih264dec).unwrap();
+    vaapih264dec.link(&videorate).unwrap();
+    videorate.link(&vaapipostproc).unwrap();
+    vaapipostproc.link(&vaapijpegenc).unwrap();
+    vaapijpegenc.link(&sink).unwrap();
     //rtspsrc location={} !
     //   rtph264depay 
     //   queue leaky=2 
