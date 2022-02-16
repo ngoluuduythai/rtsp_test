@@ -223,6 +223,19 @@ fn create_pipeline(
         }
     });
 
+
+    sink.set_property("drop", true);
+    sink.set_property("emit-signals", false);
+    sink.set_property("max-buffers", 100);
+
+    let caps = gst::Caps::builder("video/x-raw").build();
+
+    sink.set_caps(Some(&caps));
+
+    let video_caps = gst::Caps::builder("video/x-raw,framerate=3/1").build();
+    src.set_property("caps", video_caps);
+
+
     rtph264depay_2.link(&queue).unwrap();
     queue.link(&h264parse).unwrap();
     h264parse.link(&queue_2).unwrap();
