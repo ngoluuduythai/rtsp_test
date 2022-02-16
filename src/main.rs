@@ -11,31 +11,31 @@
 extern crate gstreamer as gst;
 extern crate gstreamer_app as gst_app;
 extern crate gstreamer_video as gst_video;
+use anyhow::Error;
+use bastion::distributor::*;
+use bastion::prelude::*;
+use byte_slice_cast::*;
+use derive_more::{Display, Error};
 use gst::element_error;
 use gst::glib;
 use gst::prelude::*;
-use byte_slice_cast::*;
 use image::GenericImageView;
-use std::io::Write; // bring trait into scope
-use std::fs;
-use tokio::runtime::Handle;
-use rand::Rng;
-use anyhow::Error;
-use derive_more::{Display, Error};
 use image::*;
-use bastion::distributor::*;
-use bastion::prelude::*;
+use rand::Rng;
+use std::fs;
+use std::io::Write; // bring trait into scope
+use tokio::runtime::Handle;
 mod throttle;
-use throttle::Throttle;
-use tokio::net::TcpStream;
-use std::error::Error as OtherError;
-use nats::{self, asynk::Connection};
 use async_std::task;
 use fast_image_resize as fr;
+use nats::{self, asynk::Connection};
+use std::error::Error as OtherError;
 use std::io::BufWriter;
 use std::num::NonZeroU32;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
+use throttle::Throttle;
+use tokio::net::TcpStream;
 // #[path = "../examples-common.rs"]
 // mod examples_common;
 
@@ -73,20 +73,22 @@ async fn connect_nats() -> Connection {
         .unwrap()
 }
 
-
 // fn on_pad_added(elem: gst::Element, pad: gst::Pad) {
 //     // Pad sinkPad = sink.getStaticPad("sink");
 //     // pad.link(sinkPad);
 //     pad.link(elem.get_static_pad("sink"));
 // }
 
-
-
-
- fn create_pipeline(id: String, uri: String, client: Connection, is_frame_getting: Arc<Mutex<bool>>,is_record: Arc<Mutex<bool>>,
+fn create_pipeline(
+    id: String,
+    uri: String,
+    client: Connection,
+    is_frame_getting: Arc<Mutex<bool>>,
+    is_record: Arc<Mutex<bool>>,
     is_live: Arc<Mutex<bool>>,
     width: Arc<Mutex<usize>>,
-    height: Arc<Mutex<usize>>,) -> Result<gst::Pipeline, Error> {
+    height: Arc<Mutex<usize>>,
+) -> Result<gst::Pipeline, Error> {
     // let client = task::block_on(connect_nats());
     gst::init()?;
 
@@ -97,8 +99,8 @@ async fn connect_nats() -> Connection {
     // ))?
     //let pipeline = gst::parse_launch(&format!(
     //    "rtspsrc location={} latency=0 ! queue ! rtpjitterbuffer ! rtph264depay ! queue ! h264parse ! avdec_h264 ! queue ! video/x-raw ! jpegenc ! image/jpeg ! appsink name=sink" ,
-  //      uri
-//    ))?
+    //      uri
+    //    ))?
     //  let pipeline = gst::parse_launch(&format!(
     //      "rtspsrc location={} latency=300 !application/x-rtp, clock-rate=90000, encoding-name=H264, payload=96 ! rtpjitterbuffer latency=300 ! appsink name=sink max-buffers=100 emit-signals=false drop=true" ,
     //      uri
@@ -111,43 +113,41 @@ async fn connect_nats() -> Connection {
     // .downcast::<gst::Pipeline>()
     // .expect("Expected a gst::Pipeline");
 
+    let pipeline = gst::Pipeline::new(None)
+        .downcast::<gst::Pipeline>()
+        .expect("Expected a gst::Pipeline");
 
-
-    let pipeline = gst::Pipeline::new(None).downcast::<gst::Pipeline>().expect("Expected a gst::Pipeline");
-
-    let src = gst::ElementFactory::make("rtspsrc", Some("src"))
-        .map_err(|_| MissingElement("rtspsrc"))?;
+    let src =
+        gst::ElementFactory::make("rtspsrc", Some("src")).map_err(|_| MissingElement("rtspsrc"))?;
     src.set_property("location", &uri);
 
     let rtph264depay = gst::ElementFactory::make("rtph264depay", None)
         .map_err(|_| MissingElement("rtph264depay"))?;
 
-    let queue = gst::ElementFactory::make("queue", Some("queue"))
-        .expect("Could not create queue element.");
+    let queue =
+        gst::ElementFactory::make("queue", Some("queue")).expect("Could not create queue element.");
     queue.set_property_from_str("leaky", "upstream");
     let queue_2 = gst::ElementFactory::make("queue", Some("queue_2"))
         .expect("Could not create queue element.");
     queue_2.set_property_from_str("leaky", "upstream");
-    let queue_3 = gst::ElementFactory::make("queue", Some("queue_3"))
-        .map_err(|_| MissingElement("queue"))?;
-    let h264parse = gst::ElementFactory::make("h264parse", None)
-        .map_err(|_| MissingElement("h264parse"))?;
+    let queue_3 =
+        gst::ElementFactory::make("queue", Some("queue_3")).map_err(|_| MissingElement("queue"))?;
+    let h264parse =
+        gst::ElementFactory::make("h264parse", None).map_err(|_| MissingElement("h264parse"))?;
     let vaapih264dec = gst::ElementFactory::make("vaapih264dec", None)
         .map_err(|_| MissingElement("vaapih264dec"))?;
-    let videorate = gst::ElementFactory::make("videorate", None)
-        .map_err(|_| MissingElement("videorate"))?;
+    let videorate =
+        gst::ElementFactory::make("videorate", None).map_err(|_| MissingElement("videorate"))?;
     let vaapipostproc = gst::ElementFactory::make("vaapipostproc", None)
         .map_err(|_| MissingElement("vaapipostproc"))?;
     let vaapijpegenc = gst::ElementFactory::make("vaapijpegenc", None)
         .map_err(|_| MissingElement("vaapijpegenc"))?;
 
-      let  depay = gst::ElementFactory::make("rtph264depay", Some("depay"))?;
-      let  queuev1 = gst::ElementFactory::make("queue2", Some("queue"))?;
-      let decodebin = gst::ElementFactory::make("avdec_h264", Some("decodea"));
+    let depay = gst::ElementFactory::make("rtph264depay", Some("depay"))?;
+    let queuev1 = gst::ElementFactory::make("queue2", Some("queue"))?;
+    let decodebin = gst::ElementFactory::make("avdec_h264", Some("decodea"));
 
-
-      //src.connect("pad-added", on_pad_added(pipeline), queuev1)?;
-
+    //src.connect("pad-added", on_pad_added(pipeline), queuev1)?;
 
     //   src.connect_pad_added(move |element, src_pad| {
     //     // Here we temporarily retrieve a strong reference on the pipeline from the weak one
@@ -159,9 +159,6 @@ async fn connect_nats() -> Connection {
     //     src_pad.link(element.get_static_pad("sink"));
     // });
 
-
-
-        
     //   let conv = gst::ElementFactory::make("videoconvert", Some("conv"))?;
     //   let  sink = gst::ElementFactory::make("xvimagesink", Some("sink"))?;
 
@@ -177,11 +174,24 @@ async fn connect_nats() -> Connection {
     //    decodebin.link(conv).unwrap();
     //    conv.link(sink).unwrap();
 
+    let sink = gst::ElementFactory::make("appsink", Some("sink"))
+        .map_err(|_| MissingElement("appsink"))?;
 
-    
-    let sink = gst::ElementFactory::make("appsink", Some("sink")).map_err(|_| MissingElement("appsink"))?;
-
-    pipeline.add_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
+    pipeline
+        .add_many(&[
+            &src,
+            &rtph264depay,
+            &queue,
+            &h264parse,
+            &queue_2,
+            &vaapih264dec,
+            &videorate,
+            &sink,
+            &queue_3,
+            &vaapipostproc,
+            &vaapijpegenc,
+        ])
+        .unwrap();
     println!("111111111111111111");
 
     // //let on_pad_added = gst::Pad::new(Some("pad-added"), gst::PadDirection::Sink);
@@ -193,24 +203,24 @@ async fn connect_nats() -> Connection {
 
     let rtph264depay_2 = rtph264depay.clone();
 
-      // Add event listener
-    src.connect_pad_added(move |_,src_pad|{
-      
-                // Obtain the sink_pad from audioconvert element
-                let sink_pad = &rtph264depay.static_pad("sink").expect("Failed to get static sink pad from convert");
-                if sink_pad.is_linked() {
-                    println!("We are already linked. Ignoreing");
-                    return;
-                }
+    // Add event listener
+    src.connect_pad_added(move |_, src_pad| {
+        // Obtain the sink_pad from audioconvert element
+        let sink_pad = &rtph264depay
+            .static_pad("sink")
+            .expect("Failed to get static sink pad from convert");
+        if sink_pad.is_linked() {
+            println!("We are already linked. Ignoreing");
+            return;
+        }
 
-                        // Link the src pad to sink pad
+        // Link the src pad to sink pad
         let res = src_pad.link(sink_pad);
         if res.is_err() {
             println!("Type is but link failed");
-        }else{
+        } else {
             println!("Link succeeded type")
         }
-    
     });
 
     rtph264depay_2.link(&queue).unwrap();
@@ -222,15 +232,15 @@ async fn connect_nats() -> Connection {
     vaapipostproc.link(&vaapijpegenc).unwrap();
     vaapijpegenc.link(&sink).unwrap();
     //rtspsrc location={} !
-    //   rtph264depay 
-    //   queue leaky=2 
-    //   h264parse 
-    //   queue leaky=2 
-    //   vaapih264dec 
-    //   videorate ! video/x-raw,framerate=5/1 
-    //   vaapipostproc ! vaapijpegenc 
+    //   rtph264depay
+    //   queue leaky=2
+    //   h264parse
+    //   queue leaky=2
+    //   vaapih264dec
+    //   videorate ! video/x-raw,framerate=5/1
+    //   vaapipostproc ! vaapijpegenc
     //   appsink name=sink max-buffers=100 emit-signals=false drop=true
-    
+
     //println!("222222222222222222");
     //gst::Element::link_many(&[&src, &rtph264depay, &queue, &h264parse, &queue_2, &vaapih264dec, &videorate, &sink, &queue_3, &vaapipostproc, &vaapijpegenc]).unwrap();
 
@@ -239,16 +249,7 @@ async fn connect_nats() -> Connection {
     // This can be set after linking the two objects, because format negotiation between
     // both elements will happen during pre-rolling of the pipeline.
 
-
-
-
-
-
     println!("pipeline: {:?} - {:?}", uri, pipeline);
-
-
-
-
 
     // Get access to the appsink element.
     let appsink = pipeline
@@ -271,7 +272,7 @@ async fn connect_nats() -> Connection {
                 let frame_height = *height.lock().unwrap();
                 // Pull the sample in question out of the appsink's buffer.
                 let sample = appsink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
-            //    println!("Sample: {:?}", sample);
+                //    println!("Sample: {:?}", sample);
                 let buffer = sample.buffer().ok_or_else(|| {
                     element_error!(
                         appsink,
@@ -282,12 +283,12 @@ async fn connect_nats() -> Connection {
                     gst::FlowError::Error
                 })?;
 
-        //        println!("Buffer {:?}", buffer);
-        // if count == 1 {
-        //     println!("stop pipeline");
-        //     *is_frame_getting.lock().unwrap() = false;
-        //     // return Err(gst::FlowError::Eos);
-        // }
+                //        println!("Buffer {:?}", buffer);
+                // if count == 1 {
+                //     println!("stop pipeline");
+                //     *is_frame_getting.lock().unwrap() = false;
+                //     // return Err(gst::FlowError::Eos);
+                // }
 
                 let map = buffer.map_readable().map_err(|_| {
                     element_error!(
@@ -298,23 +299,23 @@ async fn connect_nats() -> Connection {
 
                     gst::FlowError::Error
                 })?;
-  //              println!("xxxxxxxx Map {:?}", map);   
+                //              println!("xxxxxxxx Map {:?}", map);
 
                 let samples = map.as_slice_of::<u8>().map_err(|_| {
                     element_error!(
                         appsink,
                         gst::ResourceError::Failed,
-                       ("Failed to interprete buffer as S16 PCM")
+                        ("Failed to interprete buffer as S16 PCM")
                     );
 
                     gst::FlowError::Error
                 })?;
                 // println!("{:?}",samples);
-                 //SAVE IMAGE
+                //SAVE IMAGE
                 //  let mut file = fs::File::create(format!("packet-{}", count)).unwrap();
                 //  file.write_all(samples);
 
-                // let origin_img_result = 
+                // let origin_img_result =
                 //     image::load_from_memory_with_format(samples, ImageFormat::Jpeg);
                 // match origin_img_result {
                 //     Ok(image) => {
@@ -342,104 +343,123 @@ async fn connect_nats() -> Connection {
                 //         gst::FlowError::Error
                 //     })?;
 
-
                 let new_image = image::load_from_memory_with_format(samples, ImageFormat::Jpeg);
-                let new_image = match new_image { 
+                let new_image = match new_image {
                     Ok(image) => {
-                    let width = NonZeroU32::new(image.width()).unwrap();
-                    let height = NonZeroU32::new(image.height()).unwrap();
-                    // println!("Origin width height - {:?}x{:?} - color type: {:?}", width, height, image.color());
+                        let width = NonZeroU32::new(image.width()).unwrap();
+                        let height = NonZeroU32::new(image.height()).unwrap();
+                        // println!("Origin width height - {:?}x{:?} - color type: {:?}", width, height, image.color());
 
-                    // let test_into_raw_image =  image::load_from_memory_with_format(&image.to_rgb8().into_raw(), ImageFormat::Jpeg);
-                    // match test_into_raw_image {
-                    //     Ok(image) => {
-                    //         image.save(format!("test-load-rgb8-img-{}-{}.jpg", seed, count)).unwrap();
-                    //      count += 1;
-                    //     },
-                    //     Err(e) => {
-                    //         println!("test load rgb8 image error: {:?}", e);
-                    //         ()
-                    //     },
-                    // };
+                        // let test_into_raw_image =  image::load_from_memory_with_format(&image.to_rgb8().into_raw(), ImageFormat::Jpeg);
+                        // match test_into_raw_image {
+                        //     Ok(image) => {
+                        //         image.save(format!("test-load-rgb8-img-{}-{}.jpg", seed, count)).unwrap();
+                        //      count += 1;
+                        //     },
+                        //     Err(e) => {
+                        //         println!("test load rgb8 image error: {:?}", e);
+                        //         ()
+                        //     },
+                        // };
 
-                    let mut src_image = fr::Image::from_vec_u8(
-                        width,
-                        height,
-                        image.to_rgb8().into_raw(),
-                        fr::PixelType::U8x3
-                    ).unwrap();
+                        let mut src_image = fr::Image::from_vec_u8(
+                            width,
+                            height,
+                            image.to_rgb8().into_raw(),
+                            fr::PixelType::U8x3,
+                        )
+                        .unwrap();
 
-                    // let origin_after_torgba8_img_result = 
-                    // image::load_from_memory_with_format(src_image.buffer(), ImageFormat::Jpeg);
-                    // match origin_after_torgba8_img_result {
-                    //     Ok(image) => {
-                    //             image.save(format!("origin-rgba8-img-{}-{}.jpg", seed, count)).unwrap();
-                    //         //  count += 1;
-                    //     },
-                    //     Err(e) => {
-                    //         println!("scaled load image error: {:?}", e);
-                    //         ()
-                    //     },
-                    // };
+                        // let origin_after_torgba8_img_result =
+                        // image::load_from_memory_with_format(src_image.buffer(), ImageFormat::Jpeg);
+                        // match origin_after_torgba8_img_result {
+                        //     Ok(image) => {
+                        //             image.save(format!("origin-rgba8-img-{}-{}.jpg", seed, count)).unwrap();
+                        //         //  count += 1;
+                        //     },
+                        //     Err(e) => {
+                        //         println!("scaled load image error: {:?}", e);
+                        //         ()
+                        //     },
+                        // };
 
-                    // let alpha_mul_div = fr::MulDiv::default();
-                    // alpha_mul_div.multiply_alpha_inplace(&mut src_image.view_mut()).unwrap();
+                        // let alpha_mul_div = fr::MulDiv::default();
+                        // alpha_mul_div.multiply_alpha_inplace(&mut src_image.view_mut()).unwrap();
 
-                    let dst_width = NonZeroU32::new(720).unwrap();
-                    let dst_height = NonZeroU32::new(540).unwrap();
+                        let dst_width = NonZeroU32::new(720).unwrap();
+                        let dst_height = NonZeroU32::new(540).unwrap();
 
-                    let mut dst_image = fr::Image::new(
-                        dst_width,
-                        dst_height,
-                        src_image.pixel_type(),
-                    );
+                        let mut dst_image =
+                            fr::Image::new(dst_width, dst_height, src_image.pixel_type());
 
-                    let mut dst_view = dst_image.view_mut();
+                        let mut dst_view = dst_image.view_mut();
 
-                    let mut resizer = fr::Resizer::new(
-                        fr::ResizeAlg::Convolution(fr::FilterType::Box)
-                    );
+                        let mut resizer =
+                            fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Box));
 
-                    resizer.resize(&src_image.view(), &mut dst_view).unwrap();
+                        resizer.resize(&src_image.view(), &mut dst_view).unwrap();
 
-                    // alpha_mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
-                    
-                    let mut result_buf = BufWriter::new(Vec::new());
-                    image::codecs::jpeg::JpegEncoder::new(&mut result_buf).encode(dst_image.buffer(), dst_width.get(), dst_height.get(), ColorType::Rgb8).unwrap();
-                    println!("have images");
+                        // alpha_mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
 
-                    Vec::from(result_buf.into_inner().unwrap())
+                        let mut result_buf = BufWriter::new(Vec::new());
+                        image::codecs::jpeg::JpegEncoder::new(&mut result_buf)
+                            .encode(
+                                dst_image.buffer(),
+                                dst_width.get(),
+                                dst_height.get(),
+                                ColorType::Rgb8,
+                            )
+                            .unwrap();
 
-                }
-                Err(_) => unreachable!(),
-            };
+                        let origin_img_result =
+                            image::load_from_memory_with_format(result_buf.buffer(), ImageFormat::Jpeg);
 
-        //      let img_result = 
-        //          image::load_from_memory_with_format(&new_image, ImageFormat::Jpeg);
-        //      match img_result {
-        //          Ok(image) => {
-        //                 // println!("WxH after scale: {:?}x{:?}", image.width(), image.height());
-        //                 //  image.save(format!("final-img-{}-{}.jpg", id, count)).unwrap();
-        //                  count += 1;
-        //             },
-        //          Err(e) => {
-		// 	println!("final load image error: {:?}", e);
-		// 	()
-		// },
-        //      };
-             
-            // let mut throttle = Throttle::new(std::time::Duration::from_secs(1), 1);
-            // let result = throttle.accept();
-            // if result.is_ok() {
-                    // println!("Throttle START!!");
-                    // count += 1;
-                    // let transcode_actor = Distributor::named("transcode");
-                    // transcode_actor.tell_one(samples.to_vec()).expect("Tell transcode failed");   
-                    // let _ = client.publish(TOPIC, samples.to_vec());
-                    drop(samples);
-                    drop(map);
-                    drop(buffer);
-                    drop(sample);
+                        match origin_img_result {
+                            Ok(image) => {
+                                image
+                                    .save(format!("origin-img-{}-{}.jpg", 1, 1))
+                                    .unwrap();
+                                //  count += 1;
+                            }
+                            Err(e) => {
+                                println!("origin load image error: {:?}", e);
+                                ()
+                            }
+                        };
+
+                        println!("have images");
+
+                        Vec::from(result_buf.into_inner().unwrap())
+                    }
+                    Err(_) => unreachable!(),
+                };
+
+                //      let img_result =
+                //          image::load_from_memory_with_format(&new_image, ImageFormat::Jpeg);
+                //      match img_result {
+                //          Ok(image) => {
+                //                 // println!("WxH after scale: {:?}x{:?}", image.width(), image.height());
+                //                 //  image.save(format!("final-img-{}-{}.jpg", id, count)).unwrap();
+                //                  count += 1;
+                //             },
+                //          Err(e) => {
+                // 	println!("final load image error: {:?}", e);
+                // 	()
+                // },
+                //      };
+
+                // let mut throttle = Throttle::new(std::time::Duration::from_secs(1), 1);
+                // let result = throttle.accept();
+                // if result.is_ok() {
+                // println!("Throttle START!!");
+                // count += 1;
+                // let transcode_actor = Distributor::named("transcode");
+                // transcode_actor.tell_one(samples.to_vec()).expect("Tell transcode failed");
+                // let _ = client.publish(TOPIC, samples.to_vec());
+                drop(samples);
+                drop(map);
+                drop(buffer);
+                drop(sample);
                 // }
                 // println!("End of callbacks");
                 Ok(gst::FlowSuccess::Ok)
@@ -451,7 +471,7 @@ async fn connect_nats() -> Connection {
     Ok(pipeline)
 }
 
-fn main_loop(pipeline: gst::Pipeline, is_frame_getting: Arc<Mutex<bool>>,) -> Result<(), Error> {
+fn main_loop(pipeline: gst::Pipeline, is_frame_getting: Arc<Mutex<bool>>) -> Result<(), Error> {
     println!("Start main loop");
     pipeline.set_state(gst::State::Playing)?;
 
@@ -459,9 +479,9 @@ fn main_loop(pipeline: gst::Pipeline, is_frame_getting: Arc<Mutex<bool>>,) -> Re
         .bus()
         .expect("Pipeline without bus. Shouldn't happen!");
 
-//    println!("Bus: {:?}", bus);
+    //    println!("Bus: {:?}", bus);
 
-let mut seeked = false;
+    let mut seeked = false;
 
     for msg in bus.iter_timed(gst::ClockTime::NONE) {
         // println!("In loop msg: {:?}", msg);
@@ -494,10 +514,10 @@ let mut seeked = false;
                 // pipeline.set_state(gst::State::Null)?;
                 println!("Got Eos message, done");
                 break;
-            },
+            }
             MessageView::Error(err) => {
                 pipeline.set_state(gst::State::Null)?;
-                println!("Error: {:?}",err.error());
+                println!("Error: {:?}", err.error());
                 return Err(ErrorMessage {
                     src: msg
                         .src()
@@ -519,12 +539,9 @@ let mut seeked = false;
     Ok(())
 }
 
-
-
 #[tokio::main]
 async fn main() {
     // let handle = Handle::current();
-    
 
     let urls = [
         // "rtsp://10.50.29.36/1/h264major",
@@ -562,32 +579,20 @@ async fn main() {
                 .with_distributor(Distributor::named("rtsp"))
                 .with_exec(get_rtsp_stream)
         })
-    }).map_err(|_| println!("Error"));
+    })
+    .map_err(|_| println!("Error"));
 
     let cam_ip = vec![
         // 36,
-        171,
-        172, 
-        231, 
-        233, 
-        234, 
-        235, 
-        236, 
-        237, 
-        // 238, 
-        // 239, 
-        240,
-        241,
-        // 242, 
-        243, 
-        244, 
-        245, 
-        248, 
+        171, 172, 231, 233, 234, 235, 236, 237, // 238,
+        // 239,
+        240, 241, // 242,
+        243, 244, 245, 248,
         249,
-        // 250, 
+        // 250,
         // 251,
-        // 252, 
-        // 253, 
+        // 252,
+        // 253,
         // 254,
     ];
 
@@ -601,7 +606,8 @@ async fn main() {
                     .with_distributor(Distributor::named(name))
                     .with_exec(get_rtsp_stream)
             })
-        }).map_err(|_| println!("Error"));
+        })
+        .map_err(|_| println!("Error"));
     }
 
     Bastion::start();
@@ -620,7 +626,7 @@ async fn main() {
         rtsp_actor.tell_one(msg).expect("tell failed");
         index += 1;
     }
-    
+
     Bastion::block_until_stopped();
 }
 
@@ -646,19 +652,29 @@ async fn get_rtsp_stream(ctx: BastionContext) -> Result<(), ()> {
     loop {
         MessageHandler::new(ctx.recv().await?)
             .on_tell(|message: RTPMessage, _| {
-//let mut rng = rand::thread_rng();                
-//let n1: u8 = rng.gen();
-//println!("spawn new actor: {:?} - {:?}", message, n1);
-    let is_frame_getting = is_frame_getting.clone();
-    let is_record = is_record.clone();
-    let is_live = is_live.clone();
-    let width = width.clone();
-    let height = height.clone();
-                rt.spawn_blocking( move || {  
-                  create_pipeline(message.id, message.url, message.client, is_frame_getting.clone(), is_record.clone(), is_live.clone(), width.clone(), height.clone()).and_then(|pipeline| main_loop(pipeline, is_frame_getting.clone()));
-//let pipeline = create_pipeline(message.to_owned(), n1).await.unwrap();
-  //                  main_loop(pipeline)          
-    });
+                //let mut rng = rand::thread_rng();
+                //let n1: u8 = rng.gen();
+                //println!("spawn new actor: {:?} - {:?}", message, n1);
+                let is_frame_getting = is_frame_getting.clone();
+                let is_record = is_record.clone();
+                let is_live = is_live.clone();
+                let width = width.clone();
+                let height = height.clone();
+                rt.spawn_blocking(move || {
+                    create_pipeline(
+                        message.id,
+                        message.url,
+                        message.client,
+                        is_frame_getting.clone(),
+                        is_record.clone(),
+                        is_live.clone(),
+                        width.clone(),
+                        height.clone(),
+                    )
+                    .and_then(|pipeline| main_loop(pipeline, is_frame_getting.clone()));
+                    //let pipeline = create_pipeline(message.to_owned(), n1).await.unwrap();
+                    //                  main_loop(pipeline)
+                });
             })
             .on_fallback(|unknown, _sender_addr| {
                 println!("unknown");
