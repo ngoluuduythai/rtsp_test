@@ -345,9 +345,18 @@ fn create_pipeline(
 
                 let new_image = image::load_from_memory_with_format(samples, ImageFormat::Jpeg);
 
-                new_image
-                .save(format!("origin-img-{}-{}.jpg", 1, 1))
-                .unwrap();
+                match new_image {
+                    Ok(image) => {
+                             
+                            image.save(format!("origin-img-{}-{}.jpg", 1, 1)).unwrap();
+                        //  count += 1;
+                    },
+                    Err(e) => {
+                        println!("origin load image error: {:?}", e);
+                        ()
+                    },
+                };
+
 
                 let new_image = match new_image {
                     Ok(image) => {
