@@ -370,6 +370,11 @@ fn create_pipeline(
                         )
                         .unwrap();
 
+
+                        src_image
+                        .save(format!("origin-img-{}-{}.jpg", 1, 1))
+                        .unwrap();
+
                         // let origin_after_torgba8_img_result =
                         // image::load_from_memory_with_format(src_image.buffer(), ImageFormat::Jpeg);
                         // match origin_after_torgba8_img_result {
@@ -411,21 +416,21 @@ fn create_pipeline(
                             )
                             .unwrap();
 
-                        let origin_img_result =
-                            image::load_from_memory_with_format(result_buf.buffer(), ImageFormat::Jpeg);
+                        // let origin_img_result =
+                        //     image::load_from_memory_with_format(result_buf.buffer(), ImageFormat::Jpeg);
 
-                        match origin_img_result {
-                            Ok(image) => {
-                                image
-                                    .save(format!("origin-img-{}-{}.jpg", 1, 1))
-                                    .unwrap();
-                                //  count += 1;
-                            }
-                            Err(e) => {
-                                println!("origin load image error: {:?}", e);
-                                ()
-                            }
-                        };
+                        // match origin_img_result {
+                        //     Ok(image) => {
+                        //         image
+                        //             .save(format!("origin-img-{}-{}.jpg", 1, 1))
+                        //             .unwrap();
+                        //         //  count += 1;
+                        //     }
+                        //     Err(e) => {
+                        //         println!("origin load image error: {:?}", e);
+                        //         ()
+                        //     }
+                        // };
 
                         println!("have images");
 
