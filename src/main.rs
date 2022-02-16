@@ -138,6 +138,15 @@ fn create_pipeline(
         .map_err(|_| MissingElement("vaapih264dec"))?;
     let videorate =
         gst::ElementFactory::make("videorate", None).map_err(|_| MissingElement("videorate"))?;
+
+    let framefilter =
+        gst::ElementFactory::make("capsfilter", None).map_err(|_| MissingElement("framefilter"))?;
+
+    framefilter.set_property(
+        "caps",
+        gst::Caps::from_str("video/x-raw,framerate=3/1,width=720,height=480"),
+    );
+
     let vaapipostproc = gst::ElementFactory::make("vaapipostproc", None)
         .map_err(|_| MissingElement("vaapipostproc"))?;
     let vaapijpegenc = gst::ElementFactory::make("vaapijpegenc", None)
@@ -186,6 +195,7 @@ fn create_pipeline(
             &queue_2,
             &vaapih264dec,
             &videorate,
+            &framefilter,
             &sink,
             &queue_3,
             &vaapipostproc,
@@ -223,17 +233,13 @@ fn create_pipeline(
         }
     });
 
-
-    let video_caps = gst::Caps::builder("video/x-raw,framerate=3/1").build();
-    src.set_property("caps", video_caps);
-
-
     rtph264depay_2.link(&queue).unwrap();
     queue.link(&h264parse).unwrap();
     h264parse.link(&queue_2).unwrap();
     queue_2.link(&vaapih264dec).unwrap();
     vaapih264dec.link(&videorate).unwrap();
-    videorate.link(&vaapipostproc).unwrap();
+    videorate.link(&framefilter).unwrap();
+    framefilter.link(&vaapipostproc).unwrap();
     vaapipostproc.link(&vaapijpegenc).unwrap();
     vaapijpegenc.link(&sink).unwrap();
     //rtspsrc location={} !
@@ -263,9 +269,9 @@ fn create_pipeline(
         .downcast::<gst_app::AppSink>()
         .expect("Sink element is expected to be an appsink!");
 
-        appsink.set_property("drop", true);
-        appsink.set_property("emit-signals", false);
-        appsink.set_property("max-buffers", 100);
+    appsink.set_property("drop", true);
+    appsink.set_property("emit-signals", false);
+    appsink.set_property("max-buffers", 100);
 
     let caps = gst::Caps::builder("video/x-raw").build();
     appsink.set_caps(Some(&caps));
@@ -357,7 +363,6 @@ fn create_pipeline(
 
                 let new_image = image::load_from_memory_with_format(samples, ImageFormat::Jpeg);
 
-
                 let new_image = match new_image {
                     Ok(image) => {
                         image.save(format!("origin-img-{}-{}.jpg", 1, 1)).unwrap();
@@ -385,9 +390,6 @@ fn create_pipeline(
                             fr::PixelType::U8x3,
                         )
                         .unwrap();
-
-
-
 
                         // let origin_after_torgba8_img_result =
                         // image::load_from_memory_with_format(src_image.buffer(), ImageFormat::Jpeg);
