@@ -136,6 +136,7 @@ fn create_pipeline(
         gst::ElementFactory::make("h264parse", None).map_err(|_| MissingElement("h264parse"))?;
     let vaapih264dec = gst::ElementFactory::make("vaapih264dec", None)
         .map_err(|_| MissingElement("vaapih264dec"))?;
+
     let videorate =
         gst::ElementFactory::make("videorate", None).map_err(|_| MissingElement("videorate"))?;
 
@@ -269,12 +270,12 @@ fn create_pipeline(
         .downcast::<gst_app::AppSink>()
         .expect("Sink element is expected to be an appsink!");
 
-    appsink.set_property("drop", true);
-    appsink.set_property("emit-signals", false);
-    appsink.set_property("max-buffers", 100);
+    // appsink.set_property("drop", true);
+    // appsink.set_property("emit-signals", false);
+    // appsink.set_property("max-buffers", 100);
 
-    let caps = gst::Caps::builder("video/x-raw").build();
-    appsink.set_caps(Some(&caps));
+    // let caps = gst::Caps::builder("video/x-raw").build();
+    // appsink.set_caps(Some(&caps));
 
     let mut count = 0;
     let mut got_snapshot = false;
